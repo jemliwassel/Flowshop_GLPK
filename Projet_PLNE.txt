@@ -1,0 +1,47 @@
+param n ; #nombre de jobs 
+param m ; #nombre de machines
+param p{i in 1..n, j in 1..m} ; #temps opératoire du job i sur la machine j 
+param d ; # début de la maintenance
+param f ; #fin de la maintenance 
+var cmax;
+var c{k in 1..n, j in 1..m}; #date de fin de traitement du job en position k sur la machine j 
+var s{k in 1..n, j in 1..m}; #date de début de traitement du job en position k sur la machine j 
+var x{i in 1..n, k in 1..n } binary; #1 si le job i est en position k
+var y{k in 1..n, j in 1..m} binary; #1 si le job i en position k commence après le début de la maintenance 
+var y1{k in 1..n, j in 1..m} binary ; # 
+param A ; 
+#Objectif
+minimize z : cmax ; #Minimiser la date de fin de l'ordonnancement
+
+#Contraintes
+s.t. seulePosition {k in 1..n} : sum{i in 1..n} x[i,k] = 1 ; #Chaque job doit occuper une seule position
+s.t. seuleAffectation {i in 1..n} : sum{k in 1..n} x[i,k] = 1; #chaque job doit etre affecté une seule fois sur chaque machine
+s.t. DiffJobsMemeMachine {k in 2..n, j in 1..m }: c[k,j] >= c[k-1,j] + sum{i in 1..n} x[i,k]*p[i,j]; #Aucun job ne peut commencer sur une machine avant la fin de job en cours
+s.t. MemeJobDiffMachines {j in 2..m, k in 1..n} : c[k,j] >= c[k,j-1] + sum{i in 1..n} x[i,k]*p[i,j]; #Le job en position k doit finir son op sur la machine j-1 avant de pouvoir démarrer sin op sur la machine suivante
+s.t. JobPoistion1DiffMachines {j in 2..m} : c[1,j] >= c[1,j-1] +( sum{i in 1..n} x[i,1]*p[i,j] ) ; #Le temps de fin de traitement de job en pos 1 sur la machine j doit etre >= au temps de fin de traitement de job en pos 1 sur la machine j-1
+s.t. DateFinTraitementJob1 : sum{i in 1..n} x[i,1]*p[i,1] = c[1,1] ; #Date de fin de traietemnt de 1er job sur la première machine
+s.t. DebutJob {k in 1..n, j in 1..m} : c[k,j] - sum{i in 1..n}(x[i,k]*p[i,j]) = s[k,j] ; #Date de début de job en position k sur la machine j 
+s.t. DateFinTousLesJonb :  cmax >= c[n,m] ; #Cmax doit etre >= la date de fin de tous les jobs sur la dernière machine
+
+s.t. maintenance1 {k in 1..n, j in 1..m} : y[k,j]*A >=  1  - (d - c[k,j]);
+s.t. maintenance2 {k in 1..n, j in 1..m} : y1[k,j]*A >= 1 - (f - s[k,j]) ;
+
+s.t. maintenance {k in 1..n, j in 1..m } : s[k,j] >= (y[k,j]) *f  ; 
+ 
+solve ; 
+display cmax ; 
+data ; 
+param n := 4;
+
+param m := 5;
+
+param d:= 30 ; 
+param f:=47 ;
+
+param A:= 10000 ; 
+param p :1  2  3  4  5 :=
+		1	5 9 8 10 1
+		2	9 3 10 1 8
+		3	9 4 5 8 6
+		4	4 8 8 7 2 ;
+
